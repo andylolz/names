@@ -57,6 +57,8 @@ for sex in ['F', 'M']:
 
     for name, data in totals.items():
         for year, total in data.items():
+            if total == 0:
+                continue
             output.append({
                 'sex': sex,
                 'year': year,
