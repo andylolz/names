@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Guess Your Name</title>
+<link rel="stylesheet" href="style/style.css" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="//cloud.typography.com/7626174/696048/css/fonts.css" />
+<link href='https://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="https://flowingdata.com/wp-content/themes/fd-modern-5-8-3/stylesheets/skeleton-3.css">
+</head>
+<div id="main-wrapper" class="container" style="width:100%">
+<div class="six columns alpha">
+<div id="update">
+<div>
+<div class="sentence">I am&nbsp;</div>
+<div id="sex" class="dropdown-wrapper" , tabindex="1" style="float:left;z-index:10">
+<span>Sex</span>
+<ul class="dropdown"></ul>
+</div>
+<div class="clr"></div>
+<div class="sentence">I was born in</div>
+<div id="year">
+<div id="yearvalue"></div>
+<div id="yearslider" class="sliderholder"></div>
+</div>
+<div class="clr"></div>
+<div class="sentence" style="padding-bottom:5px">My name starts with:</div>
+<div class="clr"></div>
+<input id="search-input" type="text" name="q" placeholder="Begin entering here..." style="outline:0" />
+<div class="clr"></div>
+</div>
+
+
+</div>
+</div>
+<div class="ten columns omega">
+<div id="chart"></div>
+</div>
+</div>
+<script src="js/d3.v4.min.js"></script>
+<script src="js/d3.slider.js"></script>
+<script src="js/textures.js"></script>
+<script type="text/javascript" src="//flowingdata.com/js/pym.min.js"></script>
+<script>
+var USER_YEAR = 1996,
+    USER_SEX = "F",
+    USER_INPUT = '';
+
+var CURR_DATA,
+    thedata;
+
+
+var sexes = { "F": "Female", "M": "Male" };
+
+
+var results = [],
+    max_results = 20;
+    
+// Dimensions of chart.
+var margin = {top: 25, right: 15, bottom: 30, left: 10},
+    width = parseInt(d3.select('#chart').style('width'), 10),
+    width = width - margin.left - margin.right,
+    height = 560, // will change
+    barHeight = 25,
+    spacing = 10,
+    index,
+    bars,
+    note;
+    
+const texture = textures.lines()
+    .size(8)
+    .strokeWidth(1)
+    .stroke("#ffffff")
+    .background("#f0f0f0");
+
+
+var x = d3.scaleLinear()
+    .domain([0, 100])
+    .range([0, width]);
+var y = d3.scaleBand()
+    .domain(d3.range(0, max_results))
+    .range([0, max_results * barHeight]);
+var xAxis;
+
+height = max_results * barHeight;
+    
+var svg = d3.select('#chart').append('svg')
+    .style('width', (width + margin.left + margin.right) + 'px')
+    .style('height', (height + margin.top + margin.bottom) + 'px')
+  .append('g')
+    .attr('transform', 'translate(' + [margin.left, margin.top] + ')');
+svg.call(texture);
+
+    
+
+d3.tsv("data/names_byyear_sub.tsv", type, function(error, data) {
+    if (error) throw error;
+
+    thedata = data;
+    
+    CURR_DATA = data
+        .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+        .sort(function(a, b) { return b.pct - a.pct; });
+    
+    results = CURR_DATA.slice(0, max_results);
+    
+    setChart();
+    
+}); // @end d3.tsv()
+
+
+function setChart() {
+    
+    // x-axis
+    xAxis = d3.axisTop(x)
+        .tickFormat(d => d + '%')
+        .tickSize(8)
+        .tickPadding(5);
+    svg.append('g')
+        .attr('class', 'x axis top')
+        .call(xAxis);
+    
+    // Add bars
+    bars = svg.selectAll('.bar')
+        .data(results)
+      .enter().append('g')
+        .attr('class', 'bar')
+        .attr('transform', function(d, i) { return 'translate(0,'  + y(i) + ')'; });
+    
+    // Add background bars
+    bars.append('rect')
+        .attr('class', 'background')
+        .style('fill', texture.url())
+        .attr('height', y.bandwidth())
+        .attr('width', width);
+    
+    // Add value bars
+    bars.append('rect')
+        .attr('class', 'percent')
+        .attr('height', y.bandwidth())
+        .attr('width', d => x(d.pct));  
+    bars.append('text')
+        .text(d => d.name)
+        .attr('class', 'name')
+        .attr('y', y.bandwidth() - 8)
+        .attr('x', spacing);
+    
+    setControls();
+    setAnnotation();
+    resize();
+    
+    
+    // For iframe resizing.
+    var pymChild = new pym.Child();
+}
+
+
+function updateData() {
+    CURR_DATA = thedata
+        .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+        .sort(function(a, b) { return b.pct - a.pct; });
+}
+
+
+
+function setControls() {
+    
+    
+    // Sex dropdown menu
+    var dropdown_sex = d3.select("#update #sex");
+    dropdown_sex.select("span").text(sexes[USER_SEX]);
+    dropdown_sex.on("click", function() {
+        d3.select(this).classed("active", !d3.select(this).classed("active"));
+    });
+    var dropdown_sex_li = dropdown_sex.select(".dropdown").selectAll("li")
+        .data(d3.keys(sexes))
+      .enter().append("li")
+        .attr("id", function(d) { return d; })
+        .classed("current", function(d) { return d == USER_SEX ? true : false; })
+        .text(function(d) { return sexes[d]; });
+    dropdown_sex_li.on("click", function(d) {
+        d3.select("#sex span").text(sexes[d]);
+        d3.select(this).classed("current", true); // Hide currently selected metric from menu
+        d3.select("#sex #" + USER_SEX).classed("current", false);   // Show previously hidden 
+    
+        USER_SEX = d;
+        
+        updateData();
+        update();
+    }); 
+    
+    
+    
+    var year_slider = d3.slider()
+        .min(1996).max(2018)
+        .ticks(0).stepValues(d3.range(1996,2019))
+        .value(USER_YEAR)
+        .callback(function() {
+            USER_YEAR = year_slider.value();
+            d3.select('#yearvalue').text(USER_YEAR);
+            
+            updateData();
+            update();
+        });
+    d3.select("#yearslider").call(year_slider);
+    d3.select("#yearvalue").text(USER_YEAR);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // Buttons for sex.
+    // d3.selectAll("#sex .button")
+    //  .on("click", function() {
+    //      USER_SEX = d3.select(this).attr("data-val");
+    //      d3.select("#sex .current").classed("current", false);
+    //      d3.select(this).classed("current", true);
+    //
+    //      CURR_DATA = thedata
+    //          .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+    //          .sort(function(a, b) { return b.pct - a.pct; });
+    //
+    //         update();
+    //  });
+    //
+    
+    // Decade
+    // d3.selectAll("#year .button")
+    //  .on("click", function() {
+    //      USER_YEAR = d3.select(this).attr("data-val");
+    //      d3.select("#year .current").classed("current", false);
+    //      d3.select(this).classed("current", true);
+    //
+    //      CURR_DATA = thedata
+    //          .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+    //          .sort(function(a, b) { return b.pct - a.pct; });
+    //
+    //         update();
+    //  });
+    
+    
+    // Name input
+    d3.select("#search-input").on("input", function() {
+        
+        USER_INPUT = this.value.toLowerCase();
+        
+        update();
+        
+    });
+}
+
+
+
+function update() {
+    
+    
+    results = CURR_DATA
+        .filter(function(d) {
+            return d.name.toLowerCase().substring(0, USER_INPUT.length) == USER_INPUT;
+        });
+    
+    // If there are results:
+    if (results.length > 0) {
+        var total_wt = d3.sum(results, d => d.pct)
+        results.map(d => d.pct_adj = 100 * d.pct / total_wt);
+        console.log(results);
+    }
+
+    // If there aren't that many results:
+    if (results.length < max_results) {
+        var num_empties = max_results - results.length;
+        d3.range(0, num_empties).forEach(function() {
+            results.push({ 'name': '', 'pct': 0, 'pct_adj': 0 })
+        });
+    }
+
+    else if (results.length > max_results) {
+        results = results.slice(0, max_results);
+    }
+    
+    if (USER_INPUT != '') {
+        // x.domain([0, results[0].pct_adj]).nice();
+        x.domain([0, 100]);
+    } else {
+        x.domain([0, 100]);
+    }
+    
+    svg.select('.x.axis.top')
+        .transition()
+        .duration(700)
+        .call(xAxis);
+    
+    svg.selectAll('.bar')
+        .data(results)
+        .select(".percent")
+        .transition()
+        .duration(700)
+        .attr('width', function(d) { return x(d.pct_adj); });
+    
+    bars.select('text')
+        .text(d => d.name);
+        
+    
+    updateAnnotation();
+    
+}
+
+
+
+function setAnnotation() {
+    
+    note = d3.select("#chart").append("div")
+        .attr("id", "note")
+        .attr('class', 'annotation')
+        .style("width", (width/2)+"px")
+        .style("background", "#ffffff")
+        .style("left", (width/2-(parseInt(d3.select('#note').style('width'), 10)/2)) + "px")
+        .style("top", (height/3) + "px");
+        
+    updateAnnotation();
+}
+
+
+function updateAnnotation() {
+    console.log(results[0])
+    if (USER_INPUT == '') {
+        note.style("display", "block");
+        note.html("Since I don&rsquo;t know what your name starts with yet, I&rsquo;m just showing the most common names for <strong>" + sexes[USER_SEX] + "s</strong>, born in <strong>" + USER_YEAR + "</strong>.")
+    }
+    
+    else if (results[0].pct_adj > 99) {
+        note.style("display", "block");
+        note.html("Okay, I&rsquo;m just about certain your name is <strong>" + results[0].name + "</strong>.")
+    }
+    
+    else if (results[0].pct_adj > 90) {
+        note.style("display", "block");
+        note.html("I&rsquo;m pretty sure your name is <strong>" + results[0].name + "</strong>.")
+    }
+    
+    else if (results[0].pct_adj > 50) {
+        note.style("display", "block");
+        note.html("I&rsquo;m gonna go with <strong>" + results[0].name + "</strong>. Is that your name?")
+    }
+    
+    else if (results[0].pct_adj > 30) {
+        note.style("display", "block");
+        note.html("Um, <strong>" + results[0].name + "</strong>? Or maybe <strong>" + results[1].name + "</strong>.");
+    }
+    
+    else if (results[0].pct_adj > 0) {
+        note.style("display", "block");
+        note.html("I don&rsquo;t really know what your name is, but if I were to guess, I&rsquo;d go with <strong>" + results[0].name + "</strong>.")
+    }
+    
+    else if (results[0].pct_adj == 0) {
+        note.style("display", "block");
+        note.html("Sorry, I have a really bad memory. What was your name again? I couldn&rsquo;t find any matches in the data.")
+    }
+    
+    else {
+        note.style("display", "none");
+        note.html('');
+    }
+    
+    
+    if (USER_YEAR < 1920) {
+        var curr_note = note.html() + " (You might also want to get in touch with Guinness World Records.)";
+        note.html(curr_note);
+        
+    }
+    
+}
+
+
+
+
+
+
+d3.select(window).on('resize', resize);
+
+function resize() {
+    // update width
+    width = parseInt(d3.select('#chart').style('width'), 10);
+    width = width - margin.left - margin.right;
+
+    // resize the chart
+    x.range([0, width]);
+    d3.select(svg.node().parentNode)
+        .style('width', (width + margin.left + margin.right) + 'px');
+    svg.selectAll('rect.background')
+        .attr('width', width);
+    svg.select('.x.axis.top')
+        .call(xAxis);
+    svg.selectAll('rect.percent')
+        .attr('width', function(d) { return x(d.pct); });
+
+    // update annotation
+    note.style("width", (width/2)+"px");
+    note.style("left", (width/2-(parseInt(d3.select('#note').style('width'), 10)/2)) + "px");
+
+}
+
+
+
+
+
+function type(d) {
+    d.year = +d.year;
+    d.pct = +d.pct;
+    
+    return d;
+}
+</script>
