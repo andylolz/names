@@ -1,14 +1,27 @@
-
 <!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8">
-<title>Guess Your Name</title>
+<title>Guess Your Name: UK</title>
 <link rel="stylesheet" href="style/style.css" type="text/css" media="screen" />
 <link rel="stylesheet" type="text/css" href="//cloud.typography.com/7626174/696048/css/fonts.css" />
-<link href='https://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
-<link rel="stylesheet" href="https://flowingdata.com/wp-content/themes/fd-modern-5-8-3/stylesheets/skeleton-3.css">
+<link href='//fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="style/skeleton-3.css">
 </head>
-<div id="main-wrapper" class="container" style="width:100%">
+<body>
+<div id="main-wrapper" class="container">
+
+<div class="row">
+<div class="three columns">&nbsp;</div>
+<div class="ten columns" id="intro">
+    <p><a href="https://flowingdata.com/2020/01/21/name-guess/">This name guesser</a> by <a href="https://flowingdata.com/about-nathan">Nathan Yau</a> is really lovely.</p>
+
+    <p>I’ve modified it to use UK data from the <a href="https://www.ons.gov.uk">ONS</a>.</p>
+
+    <p>The ONS <a href="https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/livebirths/adhocs/10429babynames1996to2018englandandwales">makes annual data available</a> for England and Wales, from 1996 to 2018.</p>
+</div>
+</div>
+
 <div class="six columns alpha">
 <div id="update">
 <div>
@@ -40,7 +53,7 @@
 <script src="js/d3.v4.min.js"></script>
 <script src="js/d3.slider.js"></script>
 <script src="js/textures.js"></script>
-<script type="text/javascript" src="//flowingdata.com/js/pym.min.js"></script>
+<script type="text/javascript" src="js/pym.min.js"></script>
 <script>
 var USER_YEAR = 1996,
     USER_SEX = "F",
@@ -416,3 +429,5 @@ function type(d) {
     return d;
 }
 </script>
+</body>
+</html>
