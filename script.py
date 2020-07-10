@@ -1,74 +1,68 @@
-import urllib.request
+from itertools import islice
 import csv
 
 import xlrd
 
-url = 'https://www.ons.gov.uk/file?' + \
-      'uri=/peoplepopulationandcommunity/birthsdeathsandmarriages/' + \
-      'livebirths/adhocs/10429babynames1996to2018englandandwales/' + \
-      'adhocallbabynames1996to2018.xls'
 
-opener = urllib.request.URLopener()
-opener.addheader('User-Agent', 'Mozilla/5.0')
-filename, headers = opener.retrieve(url, 'names.xls')
+def skip_headers(rows, header_row=0):
+    return islice(rows, header_row, None)
+
+
+def get_name(cell):
+    name = cell.value
+    if str(cell) == 'bool:1':
+        # the name "TRUE" completely throws the excel parser
+        name = 'TRUE'
+    return name.title()
+
+
+def val_from_cell(cell):
+    if cell.value == ':':
+        return 0.
+    return cell.value
+
 
 book = xlrd.open_workbook('names.xls')
-
 sheet = {
     'M': book.sheet_by_name('Boys'),
     'F': book.sheet_by_name('Girls'),
 }
 
-# for sheet in [boy_sheet, girl_sheet]:
+
 min_year = 1996
 max_year = 2018
-years = range(min_year, max_year + 1)
-upper_index = (max_year - min_year) * 2 + 2
-indexes = range(upper_index, 0, -2)
+years = range(max_year, min_year-1, -1)
+header_row = ['Name'] + ['{} {}'.format(y, x)
+                         for y in years
+                         for x in ['Rank', 'Count']]
+indexes = [idx for idx, x in enumerate(header_row) if 'Count' in x]
+
 output = []
 
 for sex in ['F', 'M']:
     rows = sheet[sex].get_rows()
-    while True:
-        row = next(rows)
-        if row[0].value == 'Name':
-            break
-
-    totals = {}
+    rows = skip_headers(rows, 6)
+    counts = []
     for row in rows:
-        name = row[0].value
-        if str(row[0]) == 'bool:1':
-            # the name "TRUE" completely throws the excel parser
-            name = 'TRUE'
-        if name == '':
+        if row[0].value == '':
             break
-        name = name.title()
-        totals[name] = dict(zip(years, map(lambda x: row[x].value
-                                           if row[x].value != ':'
-                                           else 0.0, indexes)))
+        counts.append({
+            'name': get_name(row[0]),
+            'count': sum([val_from_cell(row[i]) for i in indexes]),
+        })
+    total = sum(x['count'] for x in counts)
+    for x in counts:
+        output.append({
+            'sex': sex,
+            'name': x['name'],
+            'abs': x['count'],
+            'pct': 100 * x['count'] / total,
+        })
 
-    year_totals = {year: sum([t[year]
-                              for t in totals.values()])
-                   for year in years}
-
-    # percs = {name: {year: 100 * total / year_totals[year]
-    #                 for year, total in t.items()
-    #                 } for name, t in totals.items()}
-
-    for name, data in totals.items():
-        for year, total in data.items():
-            if total == 0:
-                continue
-            output.append({
-                'sex': sex,
-                'year': year,
-                'name': name,
-                'pct': 100 * total / year_totals[year],
-            })
-
-with open('data/names_byyear_sub.tsv', 'w') as f:
-    writer = csv.DictWriter(f, fieldnames=['sex', 'year', 'name', 'pct'],
+fieldnames = ['sex', 'name', 'pct']
+with open('data/names_sub.tsv', 'w') as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames,
                             dialect='excel-tab')
     _ = writer.writeheader()
     for row in output:
-        _ = writer.writerow(row)
+        _ = writer.writerow({k: v for k, v in row.items() if k in fieldnames})

@@ -31,12 +31,6 @@
 <ul class="dropdown"></ul>
 </div>
 <div class="clr"></div>
-<div class="sentence">I was born in</div>
-<div id="year">
-<div id="yearvalue"></div>
-<div id="yearslider" class="sliderholder"></div>
-</div>
-<div class="clr"></div>
 <div class="sentence" style="padding-bottom:5px">My name starts with:</div>
 <div class="clr"></div>
 <input id="search-input" type="text" name="q" placeholder="Begin entering here..." style="outline:0" />
@@ -55,8 +49,7 @@
 <script src="js/textures.js"></script>
 <script type="text/javascript" src="js/pym.min.js"></script>
 <script>
-var USER_YEAR = 1996,
-    USER_SEX = "F",
+var USER_SEX = "F",
     USER_INPUT = '';
 
 var CURR_DATA,
@@ -106,13 +99,13 @@ svg.call(texture);
 
     
 
-d3.tsv("data/names_byyear_sub.tsv", type, function(error, data) {
+d3.tsv("data/names_sub.tsv", type, function(error, data) {
     if (error) throw error;
 
     thedata = data;
     
     CURR_DATA = data
-        .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+        .filter(d => d.sex == USER_SEX)
         .sort(function(a, b) { return b.pct - a.pct; });
     
     results = CURR_DATA.slice(0, max_results);
@@ -170,7 +163,7 @@ function setChart() {
 
 function updateData() {
     CURR_DATA = thedata
-        .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
+        .filter(d => d.sex == USER_SEX)
         .sort(function(a, b) { return b.pct - a.pct; });
 }
 
@@ -204,19 +197,6 @@ function setControls() {
     
     
     
-    var year_slider = d3.slider()
-        .min(1996).max(2018)
-        .ticks(0).stepValues(d3.range(1996,2019))
-        .value(USER_YEAR)
-        .callback(function() {
-            USER_YEAR = year_slider.value();
-            d3.select('#yearvalue').text(USER_YEAR);
-            
-            updateData();
-            update();
-        });
-    d3.select("#yearslider").call(year_slider);
-    d3.select("#yearvalue").text(USER_YEAR);
     
     
     
@@ -224,36 +204,6 @@ function setControls() {
     
     
     
-    
-    
-    // Buttons for sex.
-    // d3.selectAll("#sex .button")
-    //  .on("click", function() {
-    //      USER_SEX = d3.select(this).attr("data-val");
-    //      d3.select("#sex .current").classed("current", false);
-    //      d3.select(this).classed("current", true);
-    //
-    //      CURR_DATA = thedata
-    //          .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
-    //          .sort(function(a, b) { return b.pct - a.pct; });
-    //
-    //         update();
-    //  });
-    //
-    
-    // Decade
-    // d3.selectAll("#year .button")
-    //  .on("click", function() {
-    //      USER_YEAR = d3.select(this).attr("data-val");
-    //      d3.select("#year .current").classed("current", false);
-    //      d3.select(this).classed("current", true);
-    //
-    //      CURR_DATA = thedata
-    //          .filter(d => d.year == USER_YEAR && d.sex == USER_SEX)
-    //          .sort(function(a, b) { return b.pct - a.pct; });
-    //
-    //         update();
-    //  });
     
     
     // Name input
@@ -342,7 +292,7 @@ function updateAnnotation() {
     console.log(results[0])
     if (USER_INPUT == '') {
         note.style("display", "block");
-        note.html("Since I don&rsquo;t know what your name starts with yet, I&rsquo;m just showing the most common names for <strong>" + sexes[USER_SEX] + "s</strong>, born in <strong>" + USER_YEAR + "</strong>.")
+        note.html("Since I don&rsquo;t know what your name starts with yet, I&rsquo;m just showing the most common <strong>" + sexes[USER_SEX] + "</strong> names.")
     }
     
     else if (results[0].pct_adj > 99) {
@@ -381,12 +331,6 @@ function updateAnnotation() {
     }
     
     
-    if (USER_YEAR < 1920) {
-        var curr_note = note.html() + " (You might also want to get in touch with Guinness World Records.)";
-        note.html(curr_note);
-        
-    }
-    
 }
 
 
@@ -423,7 +367,6 @@ function resize() {
 
 
 function type(d) {
-    d.year = +d.year;
     d.pct = +d.pct;
     
     return d;
